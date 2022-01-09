@@ -64,8 +64,8 @@ def power_iteration(A, z):
         eigenvalue after each iteration.
     
     eigenvectors : array(array)
-        An array consisting of the eigenvectors computed after each
-        iteration.
+        An array consisting of the normalized eigenvectors computed 
+        after each iteration.
 
     converged : boolean
         Return `True` if the method converged, else return `False`.
@@ -79,7 +79,6 @@ def power_iteration(A, z):
     while True:
         z_k = A @ z
         z_k = norm(z_k)
-        # z_k = z_k / np.sum(z_k)
         l = (z_k.T @ A @ z_k) / (z_k.T @ z_k)
 
         eigenvalues.append(l)
@@ -98,41 +97,54 @@ def power_iteration(A, z):
 
 
 def question_01():
-    n = 1000
+    n = 100
     A = symmetric_matrix(n)
     z = norm(np.ones(n))
 
+    # The last eigenvalue, eigenvector is the converged solution
+    # we were looking for.
     eigenvalues, eigenvectors, converged = power_iteration(A, z)
-    l = eigenvalues[-1]
+    l = eigenvalues[-1] 
     z = eigenvectors[-1]
 
-    rho = np.linalg.norm(A, ord=2)
+    # Reference Solution.
     w, v = np.linalg.eigh(A)
-    w = w[-1]
-    v = v[:,-1]
+    w_2 = w[-2]     # 2nd largest eigenvalue
+    w = w[-1]       # Largest eigenvalue
+    v = v[:,-1]     # Eigenvector corresponding to largest eigenvalue
 
+    # Ensure that the vectors point in the same direction
     inner_product = np.inner(z, v)
     if(np.isclose(inner_product, -1)):
         eigenvectors = -eigenvectors
     
+    # Compare the difference of eigenvalue and eigenvector of the
+    # power iteration to the solution obtained by numpy.eigh
     delta_eigenvectors = eigenvectors - v
     delta_eigenvalues = np.abs(eigenvalues - w)
     eigenvector_errors = np.linalg.norm(delta_eigenvectors, axis=1)
 
-    fig, ax = plt.subplots()
+    # Speed of convergence. Take the absoute ratio of the second largest
+    # and the largest eigenvalue, and raise to the power of the number
+    # of iterations.
+    k = np.arange(1, len(eigenvalues) + 1)
+    speed_convergence = np.power(np.abs(w_2 / w), k)
+
+    _, ax = plt.subplots()
     ax.grid(linewidth=0.2)
     ax.set_xlabel("# Iterations")
     ax.set_ylabel("log(Error)")
     ax.set_title("Problem Size n = "  + str(n))
-    ax.semilogy(delta_eigenvalues, 'x-', label='$\lambda$', markersize=5)
-    ax.semilogy(eigenvector_errors, 'o-', label='$v$', markersize=3)
+    ax.semilogy(delta_eigenvalues, 'x-', label='Eigenvalue Error', markersize=5)
+    ax.semilogy(eigenvector_errors, 'o-', label='Eigenvector Error', markersize=3)
+    ax.semilogy(speed_convergence, 's-', label='Speed of Convergence', markersize=3)
     ax.legend()
     plt.show()
 
     print("\nQuestion 1\n-------------------------------------------")
     print(f'{"Power iteration":20} {"==>":15} {l}')
-    print(f'{"Solution":20} {"==>":15} {rho}')
-    print(f'{"Difference":20} {"==>":15} {np.abs(rho - l)}')
+    print(f'{"Solution":20} {"==>":15} {w}')
+    print(f'{"Difference":20} {"==>":15} {np.abs(w - l)}')
 
 
 # Question 02
@@ -152,31 +164,40 @@ def page_rank(A, p):
 
     Parameters
     ----------
-    n : int
-        Size of the square matrix.
+    A : 2darray
+        Stochastic linking matrix (The sum of the columns have
+        to add up to 1).
+    
+    p : int
+        Probability that a random surfer will leave the clicking-
+        mode and teleport to a different webpage.
     
     Returns
     -------
-    A : 2darray
-        Matrix of dimension n x n with random values in (0, 1).
+    v : array
+        The PageRank vector corresponding to the eigenvalue 1.
 
     """
     n = len(A)
     v = np.ones(n, dtype=np.float64) / n
     M = (1 - p) * A + p * np.ones((n, n)) / n
     _, eigenvectors, _ = power_iteration(M, v)
-    z = eigenvectors[-1]
+    v = eigenvectors[-1]
+    v = v / np.sum(v)   # column normalize
     
-    return z
+    return v
 
 
 def question_03():
-    A = np.array([[0, 1, 0], [0.5, 0, 1], [0.5, 0, 0]], dtype=np.float64)
+    A = np.array([[0, 1/2, 1/2, 0 , 1/2], [1/3, 0, 1/2, 1, 0], [0, 1/2, 0, 0, 1/2], [1/3, 0, 0, 0, 0], [1/3, 0, 0, 0, 0]], dtype=np.float64)
     p = 0.15
-    pr = page_rank(A, p)
+    pr_1 = page_rank(A, p)
+    p = 1e-03
+    pr_2 = page_rank(A, p)
 
     print("\nQuestion 3\n-------------------------------------------")
-    print(f'{"Page Rank":20} {"==>":15} {pr}')
+    print(f'{"p = 0.15":20} {"==>":15} {pr_1}')
+    print(f'{"p = 1e-03":20} {"==>":15} {pr_2}')
 
 
 # Question 04
@@ -228,7 +249,7 @@ def question_04():
     R = symmetric_matrix(5)
     A, Q = qr_algorithm(R)
     Eig = np.sort(np.diag(A))
-    eig, eigv = np.linalg.eig(R)
+    eig, _ = np.linalg.eig(R)
     eig = np.sort(eig)
     diff = np.linalg.norm(Eig - eig)
 
