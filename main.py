@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from numpy.core.numeric import NaN
 
 # Question 01
 def symmetric_matrix(n):
@@ -42,32 +44,90 @@ def norm(v):
 
 
 def power_iteration(A, z):
+    """
+    Power iteration method to compute the largest eigenvalue
+    and its corresponding eigenvector. If after 1e5 iterations
+    the difference of the 2-norm between the eigenvector z after
+
+    Parameters
+    ----------
+    A : 2darray
+        Size of the square matrix.
+    
+    z : array
+        Initial normalized vector
+    
+    Returns
+    -------
+    eigenvalues : array
+        An array containing the estimations of the largest
+        eigenvalue after each iteration.
+    
+    eigenvectors : array(array)
+        An array consisting of the eigenvectors computed after each
+        iteration.
+
+    converged : boolean
+        Return `True` if the method converged, else return `False`.
+
+    """
     e = 1e-9
     i = 0
+    eigenvalues = []  # Declare an empty list to hold eigenvalues
+    eigenvectors = [] # Declare an empty list to hold eigenvectors
 
     while True:
         z_k = A @ z
         z_k = norm(z_k)
         # z_k = z_k / np.sum(z_k)
+        l = (z_k.T @ A @ z_k) / (z_k.T @ z_k)
+
+        eigenvalues.append(l)
+        eigenvectors.append(z_k)
         delta = np.linalg.norm(z - z_k)
 
         if(delta < e):
-            l = (z_k.T @ A @ z_k) / (z_k.T @ z_k)
-            return z_k, l
+            return np.asarray(eigenvalues), np.asarray(eigenvectors), True
         else:
             z = z_k
             i += 1
 
-        if(i > 1e4):
+        if(i > 1e5):
             print("No convergence")
-            break
+            return NaN, NaN, False
 
 
 def question_01():
-    A = symmetric_matrix(10)
-    z = norm(np.ones(10))
-    v, l = power_iteration(A, z)
+    n = 1000
+    A = symmetric_matrix(n)
+    z = norm(np.ones(n))
+
+    eigenvalues, eigenvectors, converged = power_iteration(A, z)
+    l = eigenvalues[-1]
+    z = eigenvectors[-1]
+
     rho = np.linalg.norm(A, ord=2)
+    w, v = np.linalg.eigh(A)
+    w = w[-1]
+    v = v[:,-1]
+
+    inner_product = np.inner(z, v)
+    if(np.isclose(inner_product, -1)):
+        eigenvectors = -eigenvectors
+    
+    delta_eigenvectors = eigenvectors - v
+    delta_eigenvalues = np.abs(eigenvalues - w)
+    eigenvector_errors = np.linalg.norm(delta_eigenvectors, axis=1)
+
+    fig, ax = plt.subplots()
+    ax.grid(linewidth=0.2)
+    ax.set_xlabel("# Iterations")
+    ax.set_ylabel("log(Error)")
+    ax.set_title("Problem Size n = "  + str(n))
+    ax.semilogy(delta_eigenvalues, 'x-', label='$\lambda$', markersize=5)
+    ax.semilogy(eigenvector_errors, 'o-', label='$v$', markersize=3)
+    ax.legend()
+    plt.show()
 
     print("\nQuestion 1\n-------------------------------------------")
     print(f'{"Power iteration":20} {"==>":15} {l}')
@@ -79,25 +139,44 @@ def question_01():
 def question_02():
     A = np.array([[1, 0, 0], [0, 0, 0], [0, 0, -1]])
     z = 1/np.sqrt(3)*np.array([1, 1, 1], dtype=np.float64)
-
+    eigenvalues, eigenvectors, converged = power_iteration(A, z)
+    
     print("\nQuestion 2\n-------------------------------------------")
-    # pow_iteration(A, z)
+    print(f'{"Converged?":20} {"==>":15} {converged}')
 
 
 # Question 03
 def page_rank(A, p):
+    """
+    Generate a symmetric square matrix of dimension n x n.
+
+    Parameters
+    ----------
+    n : int
+        Size of the square matrix.
+    
+    Returns
+    -------
+    A : 2darray
+        Matrix of dimension n x n with random values in (0, 1).
+
+    """
     n = len(A)
-    v = np.ones(n, dtype=np.float64) / n  # rank vector
+    v = np.ones(n, dtype=np.float64) / n
     M = (1 - p) * A + p * np.ones((n, n)) / n
-    return power_iteration(M, v)
+    _, eigenvectors, _ = power_iteration(M, v)
+    z = eigenvectors[-1]
+    
+    return z
 
 
 def question_03():
     A = np.array([[0, 1, 0], [0.5, 0, 1], [0.5, 0, 0]], dtype=np.float64)
     p = 0.15
+    pr = page_rank(A, p)
 
     print("\nQuestion 3\n-------------------------------------------")
-    #print(page_rank(A, p))
+    print(f'{"Page Rank":20} {"==>":15} {pr}')
 
 
 # Question 04
