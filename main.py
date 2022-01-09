@@ -45,29 +45,38 @@ p = 0.15
 # Question 04
 def qr_algorithm(A):
     """
-    Compute thr qr algorithm of the given matrix
+    Compute thr qr algorithm of the given matrix. Within each
+    iteration it performs a qr decomposition using np.linalg.qr
+    and recombines the next iterate in reverse order (r @ q).
+    The convergence criterion is calculated as the absolute sum
+    of the diagonal elements of the matrix A. If the difference
+    of this value between each iterate is below a threshold value
+    we have achieved convergence.
 
     Parameters
     ----------
-    A : matrix
+    A : 2darray
         A matrix array
 
     Returns
     -------
-    q : 
-
+    A : 2darray
+        2-Dimensional matrix with eigenvalues in the diagonal
+    
+    q : 2darray
+        2-Dimensional matrix with eigenvectors in each column
 
     """
-    e = 1e-5
+    e = 1e-9
     i = 0
 
     while True:
         q, r = np.linalg.qr(A)
         A_k = r @ q
 
-        delta_norm = np.abs(np.linalg.norm(A) - np.linalg.norm(A_k))
+        delta = np.sum(np.abs(np.diag(A) - np.diag(A_k)))
 
-        if(delta_norm < e):
+        if(delta < e):
             return A_k, q
         else:
             A = A_k
@@ -80,12 +89,17 @@ def qr_algorithm(A):
 
 def sym(n):
     """
-    Generate a symmetric matrix of dimension n x n
+    Generate a symmetric square matrix of dimension n x n.
 
     Parameters
     ----------
     n : int
-        A matrix array
+        Size of the square matrix.
+    
+    Returns
+    -------
+    A : 2darray
+        Matrix of dimension n x n with random values in (0, 1).
 
     """
     A = np.random.rand(n, n)
@@ -94,8 +108,17 @@ def sym(n):
     return A
 
 
-A, Q = qr_algorithm(sym(5))
-#print(A)
+R = sym(5)
+A, Q = qr_algorithm(R)
+Eig = np.sort(np.diag(A))
+eig, eigv = np.linalg.eig(R)
+eig = np.sort(eig)
+diff = np.linalg.norm(Eig - eig)
+
+print("\nQuestion 4\n-------------------------------------------")
+print(f'{"qr algorithm":20} {"==>":15} {Eig}')
+print(f'{"numpy.eig":20} {"==>":15} {eig}')
+print(f'{"Difference":20} {"==>":15} {diff}')
 
 
 # Question 05
@@ -104,13 +127,13 @@ u, s, vh = np.linalg.svd(A)
 
 sigma = np.zeros((15, 30))
 euclidean = np.sqrt(np.sum(s[10:-1]))
-s[10:-1] = 0                                # set the last 5 singular values to 0
-np.fill_diagonal(sigma, s)                  # diagonal matrix with `s` on the main diagonal
+s[10:-1] = 0                                # Set the last 5 singular values to 0
+np.fill_diagonal(sigma, s)                  # Diagonal matrix with `s` on the main diagonal
 
 A_10 = u @ sigma @ vh
 frobenius = np.linalg.norm(A - A_10)
 
 
-print("Question 5\n-------------------------------------------")
+print("\nQuestion 5\n-------------------------------------------")
 print(f'{"Frobenius":20} {"==>":15} {frobenius:.3f}')
 print(f'{"Euclidean":20} {"==>":15} {euclidean:.3f}')
